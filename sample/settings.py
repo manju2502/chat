@@ -162,4 +162,3 @@ GRAPHQL_JWT = {
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-default_app_config = "graphql_auth.apps.GraphQLAuthConfig"

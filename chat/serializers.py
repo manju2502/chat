@@ -1,45 +1,6 @@
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
-from .models import *
-from graphene_django import DjangoObjectType
-from graphene import relay, ObjectType
-from datetime import datetime
-
-
-class NewUserType(DjangoObjectType):
-    class Meta:
-        model = NewUser
-        fields = "__all__"
-        interfaces = (relay.Node, )
-
-
-class ChatType(DjangoObjectType):
-    class Meta:
-        model = Chat
-        fields = "id", "name", "members", "created_at"
-        interfaces = (relay.Node, )
-
-
-class MessageType(DjangoObjectType):
-    class Meta:
-        model = Message
-        fields = "__all__"
-        interfaces = (relay.Node, )
-
-
-class ChatConnection(relay.Connection):
-    class Meta:
-        node = ChatType
-
-
-class UserConnection(relay.Connection):
-    class Meta:
-        node = NewUserType
-
-
-class MessageConnection(relay.Connection):
-    class Meta:
-        node = MessageType
+from .models import NewUser, Chat, Message
 
 
 class NewUserSerilaizer(serializers.ModelSerializer):
@@ -53,10 +14,9 @@ class ChatSerilaizer(serializers.ModelSerializer):
 
     class Meta:
         model = Chat
-        fields = ('id', 'name', 'members', 'created_at')
+        fields = ('id', 'name', 'members', 'created_at', 'created_by')
 
     def validate_members(self, members):
-        print(self)
         # print(self.context.get('user'))
         data = []
         for member in members:
@@ -86,8 +46,12 @@ class ChatSerilaizer(serializers.ModelSerializer):
 
 
 class MessageSerilaizer(serializers.ModelSerializer):
+
     class Meta:
         model = Message
-        fields = "__all__"
+        fields = ("text", "sender", "chat")
 
-
+    def create(self, validated_data):
+        validated_data['chat'] = Chat.objects.get('id')
+        validated_data['sender'] = self.context.get('user')
+        return super().create(validated_data)

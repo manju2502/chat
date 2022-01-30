@@ -3,7 +3,6 @@ import uuid
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.utils import timezone
 
 
 class Abstract(models.Model):
@@ -17,6 +16,10 @@ class Abstract(models.Model):
 class Base(Abstract):
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey('chat.NewUser', verbose_name=_('Created by'), on_delete=models.SET_NULL, editable=False,
+                                   null=True, related_name="created_%(class)s_set")
+    modified_by = models.ForeignKey('chat.NewUser', verbose_name=_('Modified by'), on_delete=models.SET_NULL, editable=False,
+                                    null=True, related_name="modified_%(class)s_set")
 
     class Meta:
         abstract = True
@@ -58,7 +61,7 @@ class NewUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('email address'), unique=True)
     username = models.CharField(max_length=150, unique=True)
     first_name = models.CharField(max_length=150)
-    last_name = models.CharField(max_length=150, default='')
+    last_name = models.CharField(max_length=150)
     joining_date = models.DateTimeField(auto_now_add=True, null=False)
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)

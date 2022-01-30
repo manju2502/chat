@@ -1,16 +1,14 @@
 import graphene
-from django.views.decorators import http
 from graphene import relay, ObjectType
 from graphql_auth import mutations
 from graphql_auth.schema import UserQuery, MeQuery
-from graphql_relay import from_global_id
 from graphene_django import DjangoObjectType
 
 from graphene_django.rest_framework.mutation import SerializerMutation
 from .models import Chat, Message, NewUser
-from .serializers import ChatConnection, MessageConnection, UserConnection, NewUserSerilaizer, NewUserType, MessageSerilaizer, MessageType, ChatSerilaizer, ChatType
+from .serializers import NewUserSerilaizer, MessageSerilaizer, ChatSerilaizer
 
-#
+
 # class Query(UserQuery, MeQuery, graphene.ObjectType):
 #     pass
 #
@@ -29,6 +27,42 @@ from .serializers import ChatConnection, MessageConnection, UserConnection, NewU
 # schema = graphene.Schema(query=Query, mutation=Mutation)
 
 
+class NewUserType(DjangoObjectType):
+    class Meta:
+        model = NewUser
+        fields = "__all__"
+        interfaces = (relay.Node, )
+
+
+class ChatType(DjangoObjectType):
+    class Meta:
+        model = Chat
+        fields = "id", "name", "members", "created_at"
+        interfaces = (relay.Node, )
+
+
+class MessageType(DjangoObjectType):
+    class Meta:
+        model = Message
+        fields = "__all__"
+        interfaces = (relay.Node, )
+
+
+class ChatConnection(relay.Connection):
+    class Meta:
+        node = ChatType
+
+
+class UserConnection(relay.Connection):
+    class Meta:
+        node = NewUserType
+
+
+class MessageConnection(relay.Connection):
+    class Meta:
+        node = MessageType
+
+
 class Query(MeQuery, graphene.ObjectType):
     groups = relay.ConnectionField(ChatConnection)
     message = relay.ConnectionField(MessageConnection)
@@ -38,8 +72,6 @@ class Query(MeQuery, graphene.ObjectType):
     # members = graphene.Field(NewUserType, id=graphene.Int())
 
     def resolve_groups(root, info, **kwargs):
-        print(info.context.user)
-        print(info)
         return Chat.objects.all()
 
     def resolve_user(root, info, **kwargs):
@@ -47,22 +79,6 @@ class Query(MeQuery, graphene.ObjectType):
 
     def resolve_message(root, info, **kwargs):
         return Message.objects.all()
-
-
-#
-# class UserMutation(SerializerMutation):
-#     class Meta:
-#         serializer_class = NewUserSerilaizer
-#         model_operations = (
-#             "create",
-#             "update",
-#             "delete",
-#         )
-#         lookup_field = 'id'
-#
-#
-# class Mutation(graphene.ObjectType):
-#     user_mutation = UserMutation.Field()
 
 #
 # class PostMessage(MeQuery, graphene.Mutation):
@@ -86,6 +102,36 @@ class Query(MeQuery, graphene.ObjectType):
 #         for usr in users:
 #             pass
 #         return PostMessage(message=messages)
+
+
+# class PostMessage(graphene.Mutation):
+#     message = graphene.Field(MessageType)
+#
+#     class Arguments:
+#         message_data = MessageInput(required=True)
+#
+#     @staticmethod
+#     def mutate(root, info, message_data):
+#         message = Message.objects.create(**message_data)
+#         return PostMessage(message=message)
+
+
+# class PostMessage(graphene.Mutation):
+#     message = graphene.Field(MessageType)
+#
+#     class Arguments:
+#         chat_id = graphene.String(required=True)
+#         message = graphene.String(required=True)
+#
+#     @classmethod
+#     def mutate(cls, root, info, **kwargs):
+#         serializer = MessageSerilaizer(data=kwargs)
+#         if serializer.is_valid():
+#             obj = serializer.save()
+#         else:
+#             obj = None
+#         return cls(message=obj, status=200)
+
 #
 # class SenderInput(graphene.InputObjectType):
 #     id = graphene.Int(),
@@ -114,44 +160,45 @@ class Query(MeQuery, graphene.ObjectType):
 #         message = Message.objects.create(**message_data)
 #         return PostMessage(message=message)
 #
-#
-# class Mutation(graphene.ObjectType):
-#     post_message = PostMessage.Field()
-#
-#
-# schema = graphene.Schema(mutation=Mutation)
 
 
-# class PostMessage(graphene.Mutation):
-#     message = graphene.Field(MessageType)
-#
-#     class Arguments:
-#         chat_id = graphene.String(required=True)
-#         message = graphene.String(required=True)
-#
-#     @classmethod
-#     def mutate(cls, root, info, **kwargs):
-#         serializer = MessageSerilaizer(data=kwargs)
-#         if serializer.is_valid():
-#             obj = serializer.save()
-#         else:
-#             obj = None
-#         return cls(message=obj, status=200)
-
-#
-# class ChatMutation(MeQuery, SerializerMutation):
-#     class Meta:
-#         serializer_class = ChatSerilaizer
-#         model_operations = (
-#             "create",
-#             "update",
-#             "delete",
-#         )
-#         lookup_field = 'id'
-#
-#
-# class Mutation(graphene.ObjectType):
-#     chat_mutation = ChatMutation.Field()
+class MessageMutation(SerializerMutation):
+    class Meta:
+        serializer_class = MessageSerilaizer
+        model_operations = (
+            "create",
+            "update",
+            "delete",
+        )
+        lookup_field = 'id'
 
 
-schema = graphene.Schema(query=Query)
+class ChatMutation(SerializerMutation):
+    class Meta:
+        serializer_class = ChatSerilaizer
+        model_operations = (
+            "create",
+            "update",
+            "delete",
+        )
+        lookup_field = 'id'
+
+
+class UserMutation(SerializerMutation):
+    class Meta:
+        serializer_class = NewUserSerilaizer
+        model_operations = (
+            "create",
+            "update",
+            "delete",
+        )
+        lookup_field = 'id'
+
+
+class Mutation(graphene.ObjectType):
+    chat_mutation = ChatMutation.Field()
+    user_mutation = UserMutation.Field()
+    post_message = MessageMutation.Field()
+
+
+schema = graphene.Schema(query=Query, mutation=Mutation)

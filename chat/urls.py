@@ -10,5 +10,5 @@ from .schema import schema
 urlpatterns = [
     path("admin/", admin.site.urls),
     # path(r"activate/<str:token>", ActivateView.as_view()),
-    path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=True, schema=schema))),
+    path("graphql", GraphQLView.as_view(graphiql=True, schema=schema)),
 ]
