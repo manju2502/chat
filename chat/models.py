@@ -5,56 +5,27 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
-class Abstract(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        abstract = True
-
-
-class Base(Abstract):
-    created_at = models.DateTimeField(auto_now_add=True)
-    modified_at = models.DateTimeField(auto_now=True)
-    created_by = models.ForeignKey('chat.NewUser', verbose_name=_('Created by'), on_delete=models.SET_NULL, editable=False,
-                                   null=True, related_name="created_%(class)s_set")
-    modified_by = models.ForeignKey('chat.NewUser', verbose_name=_('Modified by'), on_delete=models.SET_NULL, editable=False,
-                                    null=True, related_name="modified_%(class)s_set")
-
-    class Meta:
-        abstract = True
-
-
 class CustomAccountManager(BaseUserManager):
-
-    def create_superuser(self, email, password, username):
-        user = self.create_user(
-            email=self.normalize_email(email),
-            password=password,
-            username=username,
-        )
-        user.is_admin = True
-        user.is_staff = True
-        user.is_superuser = True
-        user.save()
-        return user
-
-    def __str__(self):
-        return self.email
-
-    def create_user(self, email, username, first_name, password, **other_fields):
-
+    def _create_user(self, email, password, is_staff=False, is_superuser=False, **extra_fields):
         if not email:
-            raise ValueError(_('You must provide an email address'))
+            raise ValueError('Email must be provided')
+        if not password:
+            raise ValueError('Password is not provided')
 
-        email = self.normalize_email(email)
-        user = self.model(email=email, username=username, first_name=first_name, **other_fields)
+        user = self.model(email=self.normalize_email(email),
+                          password=password,
+                          is_staff=is_staff,
+                          is_superuser=is_superuser,
+                          )
         user.set_password(password)
-        user.save()
+        user.save(using=self._db)
         return user
 
-    def __str__(self):
-        return self.email
+    def create_user(self, email, password, **extra_fields):
+        return self._create_user(email, password, **extra_fields)
+
+    def create_superuser(self, email, password, **extra_fields):
+        return self._create_user(email, password, True, True, **extra_fields)
 
 
 class NewUser(AbstractBaseUser, PermissionsMixin):
@@ -74,6 +45,26 @@ class NewUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+
+
+class Abstract(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        abstract = True
+
+
+class Base(Abstract):
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(NewUser, verbose_name=_('Created by'), on_delete=models.SET_NULL, editable=False,
+                                   null=True, related_name="created_%(class)s_set")
+    modified_by = models.ForeignKey(NewUser, verbose_name=_('Modified by'), on_delete=models.SET_NULL, editable=False,
+                                    null=True, related_name="modified_%(class)s_set")
+
+    class Meta:
+        abstract = True
 
 
 class Chat(Base):

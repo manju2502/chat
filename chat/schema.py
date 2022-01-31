@@ -11,7 +11,7 @@ from .serializers import NewUserSerilaizer, MessageSerilaizer, ChatSerilaizer
 
 # class Query(UserQuery, MeQuery, graphene.ObjectType):
 #     pass
-#
+
 #
 # class AuthMutation(graphene.ObjectType):
 #     register = mutations.Register.Field()

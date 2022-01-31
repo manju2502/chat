@@ -88,7 +88,6 @@ DATABASES = {
        'PASSWORD': '12345',
        'HOST': 'localhost',
        'PORT': '5432',
-    "ATOMIC_MUTATIONS": True,
    }
 
 }
@@ -162,3 +161,4 @@ GRAPHQL_JWT = {
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
+# default_app_config = "graphql_auth.apps.GraphQLAuthConfig"
